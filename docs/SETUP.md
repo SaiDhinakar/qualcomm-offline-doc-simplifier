@@ -15,8 +15,8 @@
 - [ ] A code editor (VS Code recommended — good Python + Jupyter support).
 
 ```bash
-conda create -n dastaavez python=3.10
-conda activate dastaavez
+conda create -n qualcomm-offline-doc-simplifier python=3.10
+conda activate qualcomm-offline-doc-simplifier
 pip install qai-hub
 qai-hub configure --api_token <YOUR_API_TOKEN>   # from AI Hub > Account > Settings > API Token
 ```

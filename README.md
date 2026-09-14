@@ -14,7 +14,7 @@ should have to accept just to understand their own paperwork.
 
 ## What this does
 
-Point your laptop's camera (or load a scanned file) at a multi-page document. DastaavezAI:
+Point your laptop's camera (or load a scanned file) at a multi-page document. qualcomm-offline-doc-simplifierAI:
 
 1. Reads it (OCR, layout-aware)
 2. Breaks it into meaningful pieces (clauses/sections, not arbitrary chunks)
@@ -40,9 +40,9 @@ deadline.
 
 ```bash
 git clone <your-repo-url>
-cd dastaavez-ai
-conda create -n dastaavez python=3.10
-conda activate dastaavez
+cd qualcomm-offline-doc-simplifier
+conda create -n qualcomm-offline-doc-simplifier python=3.10
+conda activate qualcomm-offline-doc-simplifier
 pip install -r requirements.txt
 ```
 
@@ -53,7 +53,7 @@ pip install -r requirements.txt
 ## Repo layout
 
 ```
-dastaavez-ai/
+qualcomm-offline-doc-simplifier/
 ├── src/
 │   ├── ocr/            # document capture + layout-aware text extraction
 │   ├── chunking/        # structure-aware splitting into clauses/sections
