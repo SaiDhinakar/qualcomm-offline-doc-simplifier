@@ -1,0 +1,21 @@
+# Qualcomm AI Hub client — required for compiling/profiling/validating on real Snapdragon devices
+qai-hub
+
+# --- Placeholders below: pin exact packages once models are chosen ---
+
+# OCR (candidate — swap once decided)
+# pytesseract
+# or a layout-aware OCR model via qai-hub-models
+
+# Numerics / general
+numpy
+
+# Embedding + local vector search (candidates)
+# sentence-transformers   # only if a hosted/larger embedding model is used; prefer a small on-device one
+# faiss-cpu               # likely unnecessary at ~30-50 vectors; brute-force numpy may be enough
+
+# Local LLM runtime (via AI Hub GenieX — llama.cpp or QAIRT plugin, TBD)
+# llama-cpp-python
+
+# Testing
+pytest

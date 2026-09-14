@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+
+# Conda
+*.conda
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sensitive / local data — never commit real documents
+data/samples/*
+!data/samples/.gitkeep
+
+# Model artifacts (usually large — track via releases/LFS if needed, not plain git)
+*.onnx
+*.tflite
+*.bin
+*.gguf
+*.pt
+*.pth
+
+# AI Hub local cache/config
+.qai_hub/
+
+# Env vars / secrets
+.env
+*.env.local
+
+# IDE
+.vscode/
+.idea/
