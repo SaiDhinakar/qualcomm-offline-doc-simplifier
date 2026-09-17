@@ -1,5 +1,59 @@
 [project]
 name = "qualcomm-offline-doc-simplifier"
 version = "0.1.0"
-requires-python = ">=3.12"
-dependencies = []
+description = "Offline, on-device document simplifier for legal/financial documents"
+requires-python = ">=3.10"
+dependencies = [
+    # OCR & layout
+    "pytesseract>=0.3.10",
+    "pdf2image>=1.17.0",
+    "Pillow>=10.0.0",
+
+    # Numerics / vector search
+    "numpy>=1.24.0",
+
+    # LLM runtime
+    "llama-cpp-python>=0.3.0",
+
+    # PDF handling
+    "PyMuPDF>=1.24.0",
+
+    # CLI
+    "click>=8.1.0",
+
+    # Data models
+    "pydantic>=2.0.0",
+
+    # Testing
+    "pytest>=7.0.0",
+]
+
+[project.optional-dependencies]
+ai = [
+    "torch>=2.0.0",
+    "sentence-transformers>=3.0.0",
+]
+dev = [
+    "ruff>=0.6.0",
+    "mypy>=1.10.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
