@@ -12,9 +12,15 @@ from src.models import Chunk, GlossaryEntry
 
 # Common definition patterns in legal/financial documents
 DEFINITION_PATTERNS = [
-    # '"Term" means ...' or '"Term" shall mean ...'
+    # '"Term" means ...' or '"Term" shall mean ...' (ASCII quotes)
     re.compile(
         r'"([A-Z][^"]{1,60})"\s+(?:means|shall mean|refers to|is defined as)\s+(.+?)(?:\.|$)',
+        re.MULTILINE,
+    ),
+    # \u201cTerm\u201d means ... (Unicode curly quotes)
+    re.compile(
+        r'\u201c([A-Z][^\u201d]{1,60})\u201d\s+(?:means|shall mean|refers to'
+        r'|is defined as)\s+(.+?)(?:\.|$)',
         re.MULTILINE,
     ),
     # '(Term) means ...'
@@ -27,9 +33,14 @@ DEFINITION_PATTERNS = [
         r'(?:^|\n)\s*(?:\d+[\.\)]\s*)?([A-Z][A-Za-z\s]{1,40}?)(?:\s*:\s*|\s+means\s+)(.+?)(?:\.|$)',
         re.MULTILINE,
     ),
-    # 'defined as Term' or 'hereinafter referred to as "Term"'
+    # 'hereinafter referred to as "Term"'
     re.compile(
         r'(?:hereinafter|hereafter)\s+(?:referred\s+to\s+)?(?:as|called)\s+"([A-Z][^"]{1,60})"',
+        re.IGNORECASE,
+    ),
+    # 'hereinafter referred to as \u201cTerm\u201d'
+    re.compile(
+        r'(?:hereinafter|hereafter)\s+(?:referred\s+to\s+)?(?:as|called)\s+\u201c([A-Z][^\u201d]{1,60})\u201d',
         re.IGNORECASE,
     ),
 ]
