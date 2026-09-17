@@ -10,17 +10,17 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from src.models import DocumentSession
-from src.ocr.extract import extract_document
 from src.chunking.chunker import chunk_document
-from src.glossary.extractor import extract_glossary
-from src.simplify.simplifier import simplify_chunk
-from src.simplify.merge import merge_explanations
-from src.simplify.llm import LLMBackend, get_llm_backend
-from src.embed_index.embedding import EmbeddingBackend, get_embedding_backend
+from src.embed_index.embedding import get_embedding_backend
 from src.embed_index.index import LocalVectorIndex
 from src.embed_index.lifecycle import VectorStoreManager
+from src.glossary.extractor import extract_glossary
+from src.models import DocumentSession
+from src.ocr.extract import extract_document
 from src.qa.engine import QAEngine
+from src.simplify.llm import get_llm_backend
+from src.simplify.merge import merge_explanations
+from src.simplify.simplifier import simplify_chunk
 
 
 class Pipeline:

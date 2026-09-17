@@ -6,7 +6,6 @@ with a common interface for generating text completions.
 
 from __future__ import annotations
 
-import re
 from abc import ABC, abstractmethod
 
 
@@ -77,8 +76,9 @@ class LlamaCppLLM(LLMBackend):
 
     def is_available(self) -> bool:
         try:
-            from llama_cpp import Llama  # noqa: F401
             import os
+
+            from llama_cpp import Llama  # noqa: F401
             return os.path.exists(self._model_path)
         except ImportError:
             return False

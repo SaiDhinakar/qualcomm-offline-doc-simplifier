@@ -10,7 +10,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from src.models import DocumentSession
-from src.embed_index.index import LocalVectorIndex
 
 
 class VectorStoreManager:

@@ -50,21 +50,21 @@ def merge_explanations(
     if len(combined) < 500:
         return combined
 
-    prompt = f"""You are a document summarizer. Create a clear, organized overview of this document in {target_name}.
-
-The document has been broken into sections and each section has been explained in simple language below.
-Your job is to combine these into ONE coherent overview that:
-
-1. Starts with the MOST IMPORTANT information (obligations, risks, key dates/amounts, penalties)
-2. Groups related points together even if they came from different sections
-3. Maintains ALL specific numbers, dates, amounts, and percentages exactly as stated
-4. Uses clear headings or bullet points for readability
-5. Does NOT add any information not present in the original explanations
-6. Does NOT provide legal or financial advice
-
-Section explanations:
-{combined}
-
-Provide the merged overview in {target_name}:"""
+    prompt = (
+        f"You are a document summarizer. Create a clear, organized overview "
+        f"of this document in {target_name}.\n\n"
+        f"The document has been broken into sections and each section has been "
+        f"explained in simple language below.\n"
+        f"Your job is to combine these into ONE coherent overview that:\n\n"
+        f"1. Starts with the MOST IMPORTANT information "
+        f"(obligations, risks, key dates/amounts, penalties)\n"
+        f"2. Groups related points together even if they came from different sections\n"
+        f"3. Maintains ALL specific numbers, dates, amounts, and percentages exactly as stated\n"
+        f"4. Uses clear headings or bullet points for readability\n"
+        f"5. Does NOT add any information not present in the original explanations\n"
+        f"6. Does NOT provide legal or financial advice\n\n"
+        f"Section explanations:\n{combined}\n\n"
+        f"Provide the merged overview in {target_name}:"
+    )
 
     return llm.generate(prompt, max_tokens=1024, temperature=0.3)

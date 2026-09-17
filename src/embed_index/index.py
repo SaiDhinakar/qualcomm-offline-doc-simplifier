@@ -9,7 +9,6 @@ from __future__ import annotations
 import numpy as np
 
 from src.models import Chunk
-from src.embed_index.embedding import EmbeddingBackend
 
 
 class LocalVectorIndex:

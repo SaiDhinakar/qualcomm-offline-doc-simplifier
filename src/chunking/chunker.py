@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import re
 
-from src.models import Chunk, Document, Page, Region, RegionType
+from src.models import Chunk, Document
 
 # Heuristic: target ~500 tokens per chunk (~2000 chars). Tune once LLM is chosen.
 _TARGET_CHUNK_CHARS = 2000
@@ -55,11 +55,11 @@ def _extract_section_id(text: str) -> str | None:
     if match:
         return match.group(1).strip()
 
-    match = re.match(r"^\s*(\d+[\.\)]\s+\S)", text)
+    match = re.match(r"^\s*(\d+[\.\)])", text)
     if match:
         return match.group(1).strip()
 
-    match = re.match(r"^\s*([IVX]+[\.\)]\s+\S)", text)
+    match = re.match(r"^\s*([IVX]+[\.\)])", text)
     if match:
         return match.group(1).strip()
 

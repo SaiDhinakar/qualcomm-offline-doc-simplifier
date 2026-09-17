@@ -1,11 +1,14 @@
-from pathlib import Path
-
-import pytest
-
-from src.pipeline.run import run_pipeline
+"""Tests for the pipeline stub (legacy test)."""
 
 
-def test_pipeline_not_yet_implemented():
-    """Placeholder: replace as each stage gets implemented."""
-    with pytest.raises(NotImplementedError):
-        run_pipeline(Path("data/samples/does_not_exist_yet.png"))
+
+from src.pipeline.run import Pipeline
+
+
+def test_pipeline_ask_without_analysis():
+    """Test that asking a question without analysis returns an error."""
+    pipeline = Pipeline(llm_backend="stub", embedding_backend="hash")
+    from src.models import DocumentSession
+    session = DocumentSession(document_id="test")
+    result = pipeline.ask_question(session, "What is this?")
+    assert result["status"] == "error"

@@ -6,9 +6,6 @@ Uses embedding-based retrieval followed by LLM-based answer generation.
 
 from __future__ import annotations
 
-import re
-
-from src.models import Chunk
 from src.embed_index.embedding import EmbeddingBackend
 from src.embed_index.index import LocalVectorIndex
 from src.simplify.llm import LLMBackend
@@ -96,22 +93,20 @@ class QAEngine:
 
         context = "\n\n---\n\n".join(context_parts)
 
-        prompt = f"""You are a document question-answering assistant. Answer the user's question based ONLY on the provided document content.
-
-RULES:
-1. Answer ONLY based on the document content below — do NOT use general knowledge
-2. Preserve ALL numbers, dates, amounts, and percentages exactly as they appear
-3. If the document content doesn't fully answer the question, say so
-4. Be concise and direct
-5. Do NOT provide legal or financial advice
-6. Answer in {target_name}
-
-Document content:
-{context}
-
-Question: {question}
-
-Answer in {target_name}:"""
+        prompt = (
+            f"You are a document question-answering assistant. "
+            f"Answer the user's question based ONLY on the provided document content.\n\n"
+            f"RULES:\n"
+            f"1. Answer ONLY based on the document content below — do NOT use general knowledge\n"
+            f"2. Preserve ALL numbers, dates, amounts, and percentages exactly as they appear\n"
+            f"3. If the document content doesn't fully answer the question, say so\n"
+            f"4. Be concise and direct\n"
+            f"5. Do NOT provide legal or financial advice\n"
+            f"6. Answer in {target_name}\n\n"
+            f"Document content:\n{context}\n\n"
+            f"Question: {question}\n\n"
+            f"Answer in {target_name}:"
+        )
 
         answer_text = self._llm.generate(prompt, max_tokens=512, temperature=0.3)
 

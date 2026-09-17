@@ -95,22 +95,19 @@ def simplify_chunk(
 
     section_hint = f" (Section: {chunk.section_id})" if chunk.section_id else ""
 
-    prompt = f"""You are a legal/financial document explainer. Explain the following text in simple, clear {target_name}.
-
-RULES:
-1. Use simple, everyday language that anyone can understand
-2. Preserve ALL numbers, amounts, dates, and percentages EXACTLY as written
-3. If the text defines a term, use the definition from the glossary below
-4. Do NOT add information that isn't in the original text
-5. Do NOT give legal or financial advice — only explain what the text says
-6. Keep the explanation concise but complete
-
-{glossary_ctx}
-{numeric_ctx}
-
-Original text{section_hint}:
-{chunk.raw_text}
-
-Provide your explanation in {target_name}:"""
+    prompt = (
+        f"You are a legal/financial document explainer. "
+        f"Explain the following text in simple, clear {target_name}.\n\n"
+        f"RULES:\n"
+        f"1. Use simple, everyday language that anyone can understand\n"
+        f"2. Preserve ALL numbers, amounts, dates, and percentages EXACTLY as written\n"
+        f"3. If the text defines a term, use the definition from the glossary below\n"
+        f"4. Do NOT add information that isn't in the original text\n"
+        f"5. Do NOT give legal or financial advice — only explain what the text says\n"
+        f"6. Keep the explanation concise but complete\n\n"
+        f"{glossary_ctx}\n{numeric_ctx}\n\n"
+        f"Original text{section_hint}:\n{chunk.raw_text}\n\n"
+        f"Provide your explanation in {target_name}:"
+    )
 
     return llm.generate(prompt, max_tokens=512, temperature=0.3)
