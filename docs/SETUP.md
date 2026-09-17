@@ -1,11 +1,22 @@
 # Setup & Prerequisites
 
+## Current status
+
+As of project start, the only asset in hand is a **Qualcomm AI Hub API token** — no physical
+Snapdragon/HP hardware, no repo pushed yet, no local environment set up. This is a supported
+starting point: all hardware-specific validation happens via Qualcomm AI Hub's cloud-hosted device
+jobs (see `ARCHITECTURE.md` §8), not on physical hardware in hand.
+
+**Never commit the token.** Copy `.env.example` to `.env` and put the real token there — `.env` is
+already git-ignored. The `qai-hub configure` command below also stores it in a local config file
+outside the repo.
+
 ## Accounts you need
 
 - [ ] **GitHub account** — to host this repo.
-- [ ] **Qualcomm ID + Qualcomm AI Hub account** — sign up at https://aihub.qualcomm.com. Needed to
-      compile, quantize, and profile models on real cloud-hosted Snapdragon devices (you don't need
-      to own the hardware).
+- [x] **Qualcomm ID + Qualcomm AI Hub account** — already have an API token. Needed to compile,
+      quantize, and profile models on real cloud-hosted Snapdragon devices (you don't need to own
+      the hardware).
 - [ ] **Unstop / challenge submission account** — for the actual entry.
 
 ## Local dev environment
@@ -15,8 +26,8 @@
 - [ ] A code editor (VS Code recommended — good Python + Jupyter support).
 
 ```bash
-conda create -n qualcomm-offline-doc-simplifier python=3.10
-conda activate qualcomm-offline-doc-simplifier
+conda create -n qds python=3.10
+conda activate qds
 pip install qai-hub
 qai-hub configure --api_token <YOUR_API_TOKEN>   # from AI Hub > Account > Settings > API Token
 ```
