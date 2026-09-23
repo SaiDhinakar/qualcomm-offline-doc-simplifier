@@ -28,6 +28,12 @@ DEFINITION_PATTERNS = [
         r'\(([A-Z][^)]{1,60})\)\s+(?:means|shall mean)\s+(.+?)(?:\.|$)',
         re.MULTILINE,
     ),
+    # Unquoted: 'The Insured means ...' / 'Premium shall mean ...' (FR-7 real docs)
+    re.compile(
+        r'(?:^|[.\s])((?:The\s+)?[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)?)'
+        r'\s+(?:means|shall mean|is defined as|refers to)\s+([a-zA-Z].+?)(?:\.|$)',
+        re.MULTILINE,
+    ),
     # Term: definition (at start of line or after a number)
     re.compile(
         r'(?:^|\n)\s*(?:\d+[\.\)]\s*)?([A-Z][A-Za-z\s]{1,40}?)(?:\s*:\s*|\s+means\s+)(.+?)(?:\.|$)',
@@ -52,7 +58,10 @@ _MAX_TERM_LEN = 60
 
 def _clean_term(term: str) -> str:
     """Normalize a extracted term."""
-    return term.strip().strip('"').strip("'").strip()
+    term = term.strip().strip('"').strip("'").strip()
+    # Strip leading article so "The Insured" and "Insured" dedupe as one term
+    term = re.sub(r"^(?:The|A|An)\s+", "", term)
+    return term.strip()
 
 
 def _clean_definition(defn: str) -> str:

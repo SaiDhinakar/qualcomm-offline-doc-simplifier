@@ -1,35 +1,60 @@
 # Setup & Prerequisites
 
-## Current status
+## Current status (updated Sep 24, 2026)
 
-As of project start, the only asset in hand is a **Qualcomm AI Hub API token** — no physical
-Snapdragon/HP hardware, no repo pushed yet, no local environment set up. This is a supported
-starting point: all hardware-specific validation happens via Qualcomm AI Hub's cloud-hosted device
-jobs (see `ARCHITECTURE.md` §8), not on physical hardware in hand.
+- **AI Hub:** token configured (`qai-hub configure`); real compile + profile jobs completed on
+  **Snapdragon X Elite CRD** (results in `data/ai_hub_profile_probe.json` — inference on **NPU**).
+- **OCR:** Tesseract 5 (eng/afr/osd) primary; PaddleOCR 3.x fallback for missing packs (e.g. Hindi).
+- **LLM:** Ollama `qwen2.5:0.5b` (`QDS_LLM=ollama`); stub for tests.
+- **Embeddings:** fastembed `BAAI/bge-small-en-v1.5` (`QDS_EMBED=fastembed`); hash stub for tests.
+- **Local env:** `uv` + `.venv` (Python 3.10); 80+ tests green; ruff clean.
 
 **Never commit the token.** Copy `.env.example` to `.env` and put the real token there — `.env` is
 already git-ignored. The `qai-hub configure` command below also stores it in a local config file
-outside the repo.
+outside the repo (`~/.qai_hub/client.ini`).
 
 ## Accounts you need
 
 - [ ] **GitHub account** — to host this repo.
-- [x] **Qualcomm ID + Qualcomm AI Hub account** — already have an API token. Needed to compile,
+- [x] **Qualcomm ID + Qualcomm AI Hub account** — API token configured. Used to compile,
       quantize, and profile models on real cloud-hosted Snapdragon devices (you don't need to own
       the hardware).
 - [ ] **Unstop / challenge submission account** — for the actual entry.
 
 ## Local dev environment
 
-- [ ] **Python 3.10** (via Miniconda, per Qualcomm AI Hub's documented setup).
-- [ ] **Git**.
-- [ ] A code editor (VS Code recommended — good Python + Jupyter support).
+- [x] **Python 3.10** via `uv` (`.venv/`).
+- [x] **Git**.
+- [x] A code editor.
 
 ```bash
-conda create -n qds python=3.10
-conda activate qds
-pip install qai-hub
-qai-hub configure --api_token <YOUR_API_TOKEN>   # from AI Hub > Account > Settings > API Token
+# Preferred (this repo):
+uv venv --python 3.10 && source .venv/bin/activate
+uv pip install -e ".[embed,paddle,qai]"   # or pip install -r requirements.txt
+
+# Qualcomm AI Hub:
+uv pip install qai-hub
+qai-hub configure --api_token <YOUR_API_TOKEN>   # AI Hub → Account → Settings → API Token
+
+# Optional local LLM:
+ollama pull qwen2.5:0.5b
+export QDS_LLM=ollama QDS_EMBED=fastembed QDS_OCR=auto
+```
+
+### Backend selection (env vars read by the CLI)
+
+| Var | Values | Default |
+|-----|--------|---------|
+| `QDS_LLM` | `stub` \| `ollama` \| `llamacpp` | `stub` |
+| `QDS_EMBED` | `hash` \| `fastembed` \| `sentence-transformers` | `hash` |
+| `QDS_OCR` | `tesseract` \| `paddle` \| `auto` | `auto` |
+| `QDS_OLLAMA_MODEL` | e.g. `qwen2.5:0.5b` | `qwen2.5:0.5b` |
+
+### True end-to-end test
+
+```bash
+python -m pytest tests/test_e2e.py -v          # file → OCR → answer (stub backends)
+QDS_E2E_REAL=1 python -m pytest tests/test_e2e.py -v   # Ollama + fastembed
 ```
 
 ## Windows on ARM64 caveat
@@ -39,17 +64,16 @@ to the actual HP Omnibook), note: some Qualcomm AI Hub Models tooling requires *
 not ARM64 Python — installs will fail on native ARM64 Python for some of that tooling. This doesn't
 block using the cloud device farm from a regular x86/ARM dev laptop in the meantime.
 
-## Model-related tools (finalize once models are chosen)
+## Model-related tools (finalized)
 
-- [ ] OCR library/model — TBD
-- [ ] Local LLM runtime — TBD (via AI Hub GenieX: llama.cpp or QAIRT plugin)
-- [ ] Embedding model — TBD
-- [ ] `qai-hub-models` package if using a pre-optimized model from the AI Hub Model Zoo
-
-## requirements.txt
-
-See [`requirements.txt`](../requirements.txt) in the repo root — currently a starter file with
-placeholders; we'll pin exact packages once models are chosen.
+- [x] **OCR:** Tesseract 5.5.3 + PyMuPDF (primary); PaddleOCR 3.7 / Paddle 3.3 (fallback for
+      missing Tesseract language packs — set `PADDLE_PDX_ENABLE_MKLDNN_BYDEFAULT=False` to avoid
+      a oneDNN/PIR crash on some CPUs; the code sets this automatically).
+- [x] **Local LLM:** Ollama (`qwen2.5:0.5b`) via HTTP — no compile step. `llama-cpp-python` has
+      no prebuilt wheels on this host (source build times out); use Ollama instead.
+- [x] **Embeddings:** fastembed (`BAAI/bge-small-en-v1.5`, 384-d ONNX, no torch).
+- [x] **`qai-hub` / `qai-hub-models`:** installed; real compile+profile job run on
+      Snapdragon X Elite CRD (NPU). See `data/ai_hub_profile_probe.json`.
 
 ## Sample documents for testing
 

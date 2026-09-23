@@ -37,16 +37,20 @@ class Pipeline:
         llm_model_path: str | None = None,
         embedding_backend: str = "hash",
         embedding_model: str | None = None,
+        ocr_engine: str = "auto",
+        similarity_threshold: float = 0.15,
         session_timeout_minutes: int | None = None,
         **llm_kwargs,
     ):
         """Initialize the pipeline with configurable backends.
 
         Args:
-            llm_backend: "stub" for development, "llamacpp" for llama.cpp.
+            llm_backend: "stub", "ollama", or "llamacpp".
             llm_model_path: path to LLM model file (required for llamacpp).
-            embedding_backend: "hash" for development, "sentence-transformers" for real.
-            embedding_model: model name for sentence-transformers backend.
+            embedding_backend: "hash", "fastembed", or "sentence-transformers".
+            embedding_model: model name override for the embedding backend.
+            ocr_engine: "tesseract", "paddle", or "auto" (tesseract, paddle fallback).
+            similarity_threshold: min cosine score for RAG retrieval (lower for hash embeddings).
             session_timeout_minutes: auto-expire sessions after this duration.
             **llm_kwargs: additional arguments for the LLM backend.
         """
@@ -55,6 +59,8 @@ class Pipeline:
             embedding_backend,
             **({"model_name": embedding_model} if embedding_model else {}),
         )
+        self._ocr_engine = ocr_engine
+        self._similarity_threshold = similarity_threshold
         self._session_manager = VectorStoreManager(
             session_timeout_minutes=session_timeout_minutes,
         )
@@ -73,8 +79,10 @@ class Pipeline:
         Returns:
             DocumentSession with all analysis results.
         """
-        # 1. OCR & Layout Extraction
-        document = extract_document(document_path, language=target_language)
+        # 1. OCR & Layout Extraction (tesseract, paddle fallback on failure)
+        document = extract_document(
+            document_path, language=target_language, engine=self._ocr_engine
+        )
 
         # FR-4: Flag low-confidence OCR pages/regions
         ocr_report: OCRQualityReport = analyze_ocr_quality(document)
@@ -153,6 +161,7 @@ class Pipeline:
             index=session.index_handle,
             embedding_backend=self._embedder,
             llm=self._llm,
+            similarity_threshold=self._similarity_threshold,
         )
 
         return qa_engine.answer(question, target_language)

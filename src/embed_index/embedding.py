@@ -108,11 +108,49 @@ class SentenceTransformerBackend(EmbeddingBackend):
         return self._model.get_sentence_embedding_dimension()
 
 
+class FastEmbedBackend(EmbeddingBackend):
+    """Embedding backend using fastembed (ONNX, no torch required)."""
+
+    def __init__(self, model_name: str = "BAAI/bge-small-en-v1.5"):
+        self._model_name = model_name
+        self._model = None
+        self._dim: int | None = None
+
+    def _load(self) -> None:
+        if self._model is not None:
+            return
+        try:
+            from fastembed import TextEmbedding
+            self._model = TextEmbedding(model_name=self._model_name)
+            # probe dimension
+            probe = list(self._model.embed(["dimension probe"]))[0]
+            self._dim = int(len(probe))
+        except ImportError:
+            raise RuntimeError(
+                "fastembed is not installed. "
+                "Install with: uv pip install fastembed"
+            )
+
+    def embed(self, texts: list[str]) -> np.ndarray:
+        self._load()
+        assert self._model is not None
+        return np.array(list(self._model.embed(texts)), dtype=np.float32)
+
+    def embed_single(self, text: str) -> np.ndarray:
+        return self.embed([text])[0]
+
+    def dimension(self) -> int:
+        self._load()
+        assert self._dim is not None
+        return self._dim
+
+
 def get_embedding_backend(backend: str = "hash", **kwargs) -> EmbeddingBackend:
     """Factory function to get an embedding backend.
 
     Args:
-        backend: "hash" for development, "sentence-transformers" for real embeddings.
+        backend: "hash" for development, "fastembed" for ONNX embeddings
+            (no torch), "sentence-transformers" for torch-based.
         **kwargs: additional arguments passed to the backend constructor.
 
     Returns:
@@ -120,6 +158,8 @@ def get_embedding_backend(backend: str = "hash", **kwargs) -> EmbeddingBackend:
     """
     if backend == "hash":
         return HashEmbeddingBackend(**kwargs)
+    elif backend == "fastembed":
+        return FastEmbedBackend(**kwargs)
     elif backend == "sentence-transformers":
         return SentenceTransformerBackend(**kwargs)
     else:

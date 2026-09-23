@@ -8,15 +8,10 @@ dependencies = [
     "pytesseract>=0.3.10",
     "pdf2image>=1.17.0",
     "Pillow>=10.0.0",
+    "PyMuPDF>=1.24.0",
 
     # Numerics / vector search
     "numpy>=1.24.0",
-
-    # LLM runtime
-    "llama-cpp-python>=0.3.0",
-
-    # PDF handling
-    "PyMuPDF>=1.24.0",
 
     # CLI
     "click>=8.1.0",
@@ -29,9 +24,19 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Local LLM via Ollama HTTP API (no compile step) — preferred over llama-cpp-python
+ollama = []
+# Real semantic embeddings without torch
+embed = ["fastembed>=0.8.0"]
+# PaddleOCR fallback for missing Tesseract language packs (Hindi etc.)
+paddle = ["paddlepaddle>=3.0.0", "paddleocr>=3.0.0"]
+# Qualcomm AI Hub cloud device jobs
+qai = ["qai-hub>=0.55.0", "qai-hub-models>=0.62.0"]
+# Optional torch-based backends
 ai = [
     "torch>=2.0.0",
     "sentence-transformers>=3.0.0",
+    "llama-cpp-python>=0.3.0",
 ]
 dev = [
     "ruff>=0.6.0",

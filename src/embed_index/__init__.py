@@ -2,6 +2,7 @@
 
 from src.embed_index.embedding import (
     EmbeddingBackend,
+    FastEmbedBackend,
     HashEmbeddingBackend,
     SentenceTransformerBackend,
     get_embedding_backend,
@@ -11,6 +12,7 @@ from src.embed_index.lifecycle import VectorStoreManager
 
 __all__ = [
     "EmbeddingBackend",
+    "FastEmbedBackend",
     "HashEmbeddingBackend",
     "SentenceTransformerBackend",
     "LocalVectorIndex",

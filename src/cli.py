@@ -26,7 +26,27 @@ from src.utils.compute import detect_compute_units, get_compute_unit_indicator
 
 
 def _get_pipeline() -> Pipeline:
-    return Pipeline()
+    return _pipeline_from_env()
+
+
+def _pipeline_from_env() -> Pipeline:
+    """Build pipeline from QDS_* env vars (falls back to stub/hash for tests)."""
+    import os
+
+    llm = os.environ.get("QDS_LLM", "stub")
+    emb = os.environ.get("QDS_EMBED", "hash")
+    ocr = os.environ.get("QDS_OCR", "auto")
+    kwargs = {}
+    if llm == "ollama":
+        kwargs["model"] = os.environ.get("QDS_OLLAMA_MODEL", "qwen2.5:0.5b")
+    if llm == "llamacpp":
+        kwargs["model_path"] = os.environ.get("QDS_LLAMA_PATH")
+    return Pipeline(
+        llm_backend=llm,
+        embedding_backend=emb,
+        ocr_engine=ocr,
+        **kwargs,
+    )
 
 
 @click.group()

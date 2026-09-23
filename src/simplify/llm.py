@@ -84,6 +84,47 @@ class LlamaCppLLM(LLMBackend):
             return False
 
 
+class OllamaLLM(LLMBackend):
+    """LLM backend using a local Ollama server (no compile step)."""
+
+    def __init__(self, model: str = "qwen2.5:0.5b", host: str = "http://localhost:11434"):
+        self._model = model
+        self._host = host.rstrip("/")
+
+    def generate(self, prompt: str, max_tokens: int = 1024, temperature: float = 0.3) -> str:
+        import json
+        import urllib.request
+
+        payload = json.dumps({
+            "model": self._model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "num_predict": max_tokens,
+                "temperature": temperature,
+            },
+        }).encode()
+        req = urllib.request.Request(
+            f"{self._host}/api/generate",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            data = json.loads(resp.read().decode())
+        return data.get("response", "").strip()
+
+    def is_available(self) -> bool:
+        import urllib.request
+
+        try:
+            with urllib.request.urlopen(f"{self._host}/api/tags", timeout=3) as resp:
+                if resp.status != 200:
+                    return False
+            return True
+        except Exception:
+            return False
+
+
 def get_llm_backend(
     backend: str = "stub",
     model_path: str | None = None,
@@ -92,8 +133,8 @@ def get_llm_backend(
     """Factory function to get an LLM backend.
 
     Args:
-        backend: "stub" for development, "llamacpp" for llama.cpp.
-        model_path: path to model file (required for llamacpp).
+        backend: "stub" for development, "llamacpp" for llama.cpp, "ollama" for Ollama.
+        model_path: path to LLM model file (required for llamacpp).
         **kwargs: additional arguments passed to the backend constructor.
 
     Returns:
@@ -105,5 +146,7 @@ def get_llm_backend(
         if not model_path:
             raise ValueError("model_path is required for llamacpp backend")
         return LlamaCppLLM(model_path=model_path, **kwargs)
+    elif backend == "ollama":
+        return OllamaLLM(**kwargs)
     else:
         raise ValueError(f"Unknown LLM backend: {backend}")
