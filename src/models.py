@@ -67,6 +67,8 @@ class DocumentSession(BaseModel):
     glossary: list[GlossaryEntry] = Field(default_factory=list)
     overview: str = ""
     index_handle: Any = None
+    ocr_report: Any = None  # OCRQualityReport from src.ocr.confidence
+    compute_unit: str = ""  # e.g. "[CPU] CPU (always available)" — FR-22
     created_at: datetime = Field(default_factory=datetime.now)
     expires_at: datetime | None = None
 
@@ -80,3 +82,4 @@ class DocumentSession(BaseModel):
         self.glossary.clear()
         self.overview = ""
         self.index_handle = None
+        self.ocr_report = None

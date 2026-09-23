@@ -1,0 +1,33 @@
+1. Insurance Policy Overview
+
+This insurance policy ("Policy") is issued by ABC Insurance Company ("Company")
+to the Insured. The Insured means the person named in the Schedule of this Policy.
+The Policy Period means the duration of coverage from the start date to the end date.
+The Sum Assured means the maximum amount payable under this Policy.
+
+The Policy Period begins on January 1, 2025 and ends on December 31, 2025.
+The Sum Assured is $50,000.
+
+2. Premium Payment
+
+The Insured must pay the Premium of $1,200 per year. Payment is due on the
+first day of each month. Late payment incurs a penalty of 5% per month on
+the outstanding amount.
+
+3. Coverage
+
+The Company shall cover losses arising from natural disasters, theft, and
+accidental damage. Coverage is subject to a deductible of $500 per claim.
+The total annual coverage limit is $25,000.
+
+4. Claims Process
+
+Claims must be filed within 30 days of the incident. The Insured must provide
+documentation including photographs and a police report where applicable.
+Claims are processed within 14 business days of receiving complete documentation.
+
+5. Termination
+
+Either party may terminate this Policy with 30 days written notice.
+Upon termination, the Company shall refund the unused portion of the Premium
+on a pro-rata basis, less any claims already filed.

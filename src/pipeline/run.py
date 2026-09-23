@@ -16,11 +16,13 @@ from src.embed_index.index import LocalVectorIndex
 from src.embed_index.lifecycle import VectorStoreManager
 from src.glossary.extractor import extract_glossary
 from src.models import DocumentSession
+from src.ocr.confidence import OCRQualityReport, analyze_ocr_quality
 from src.ocr.extract import extract_document
 from src.qa.engine import QAEngine
 from src.simplify.llm import get_llm_backend
 from src.simplify.merge import merge_explanations
 from src.simplify.simplifier import simplify_chunk
+from src.utils.compute import get_compute_unit_indicator
 
 
 class Pipeline:
@@ -74,8 +76,16 @@ class Pipeline:
         # 1. OCR & Layout Extraction
         document = extract_document(document_path, language=target_language)
 
+        # FR-4: Flag low-confidence OCR pages/regions
+        ocr_report: OCRQualityReport = analyze_ocr_quality(document)
+
+        # FR-22: Detect compute unit for on-device indication
+        compute_unit = get_compute_unit_indicator()
+
         # Create session
         session = self._session_manager.create_session(document.id)
+        session.ocr_report = ocr_report
+        session.compute_unit = compute_unit
 
         # 2. Structure-Aware Chunking
         chunks = chunk_document(document)

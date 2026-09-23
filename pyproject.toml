@@ -38,6 +38,9 @@ dev = [
     "mypy>=1.10.0",
 ]
 
+[project.scripts]
+qds = "src.cli:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
