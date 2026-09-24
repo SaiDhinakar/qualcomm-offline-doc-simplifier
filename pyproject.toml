@@ -2,6 +2,23 @@
 name = "qualcomm-offline-doc-simplifier"
 version = "0.1.0"
 description = "Offline, on-device document simplifier for legal/financial documents"
+readme = "README.md"
+authors = [{ name = "SaiDhinakar", email = "saidhinakars899@gmail.com" }]
+keywords = [
+    "document-simplification",
+    "ocr",
+    "rag",
+    "offline",
+    "snapdragon",
+    "qualcomm-ai-hub",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Text Processing :: Linguistic",
+]
 requires-python = ">=3.10"
 dependencies = [
     # OCR & layout

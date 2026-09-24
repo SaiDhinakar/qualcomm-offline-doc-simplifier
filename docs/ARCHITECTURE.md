@@ -3,9 +3,10 @@
 | | |
 |---|---|
 | **Product** | Qualcomm Doc Simplifier |
-| **Status** | Draft — pre-development |
-| **Version** | 0.1 |
+| **Status** | Implemented — working end-to-end build |
+| **Version** | 0.2 |
 | **Companion doc** | See `PRD.md` for requirements this design satisfies |
+| **Maintainer** | [SaiDhinakar](https://github.com/SaiDhinakar) |
 
 ---
 
@@ -13,7 +14,8 @@
 
 1. **Offline-first.** The runtime flow never depends on network access. Any use of Qualcomm AI
    Hub happens ahead of time, during development, to compile/quantize/validate models — not at
-   inference time in the shipped product.
+   inference time in the shipped product. (One-time model downloads during setup — Ollama,
+   Hugging Face — are installation steps, not part of the document flow.)
 2. **Privacy by construction, not by policy.** Document content should be architecturally
    incapable of leaving the device during normal use, not merely "not sent" by convention.
 3. **Small-model orchestration over one giant model.** A 10-page document is too large to reason
@@ -59,11 +61,15 @@ build/validation phase to produce the compiled, quantized model artifacts these 
 ### 3.1 OCR & Layout Extraction (`src/ocr`)
 - **Responsibility:** convert a photographed or scanned document into text while preserving page
   structure (headings, clause numbers, paragraphs, tables).
-- **Input:** image(s) or PDF.
+- **Input:** image(s) (PNG/JPG/TIFF/BMP/WEBP) or PDF — PDFs are rasterized at 150 DPI via PyMuPDF
+  before OCR.
 - **Output:** per-page structured text with layout metadata (bounding boxes, detected headings,
   table regions) and a per-region OCR confidence score.
+- **Engines:** Tesseract 5 (primary), PaddleOCR 3.x (fallback for missing language packs and
+  engine failures); `auto` tries Tesseract first. Text is assembled per OCR block, so layout
+  regions stay distinct rather than collapsing into one blob.
 - **Notes:** confidence scores feed FR-4 (flagging low-confidence regions rather than silently
-  guessing).
+  guessing); webcam capture lives in `src/ocr/webcam.py` (FR-1).
 
 ### 3.2 Structure-Aware Chunker (`src/chunking`)
 - **Responsibility:** split the extracted document into chunks aligned to clause/section
@@ -86,7 +92,9 @@ build/validation phase to produce the compiled, quantized model artifacts these 
 - **Input:** one `Chunk` + relevant `Glossary` entries + target language.
 - **Output:** a plain-language explanation string per chunk, with numeric values
   (amounts/dates/percentages) preserved verbatim from the source.
-- **Model:** local LLM, running via Qualcomm AI Hub GenieX-validated runtime (see §9).
+- **Model:** local LLM behind the `LLMBackend` abstraction — Ollama (`qwen2.5:0.5b`) in the
+  current build, with a `llama-cpp-python` path and a deterministic stub for tests (see §7).
+  Target: an AI Hub GenieX-validated, quantized artifact for the shipped on-device build (§8.3).
 
 ### 3.5 Embedding & Local Vector Index (`src/embed_index`)
 - **Responsibility:** produce a vector representation of each chunk and support similarity search
@@ -194,6 +202,8 @@ DocumentSession
   - glossary: GlossaryEntry[]
   - overview: str
   - index_handle: <in-memory index reference>
+  - ocr_report: OCRQualityReport     # populated for FR-4 flagging
+  - compute_unit: str                # "[NPU] ..." indicator — FR-22
   - created_at, expires_at (if persistence enabled)
 ```
 
@@ -201,17 +211,21 @@ DocumentSession
 
 ## 7. Technology stack
 
+All previously open decisions (PRD §11) are now resolved. Actual choices in use:
+
 | Layer | Choice | Status |
 |---|---|---|
-| Language | Python 3.10 | Confirmed (per Qualcomm AI Hub's documented environment) |
-| Hardware validation | Qualcomm AI Hub (`qai-hub` client) | Confirmed |
-| LLM runtime (on-device) | AI Hub GenieX (llama.cpp or QAIRT plugin) | Confirmed approach; specific model TBD |
-| Custom model compilation | AI Hub Workbench (compile → quantize → profile → validate) | Confirmed approach |
-| OCR | TBD | Open decision — see PRD §11 |
-| Embedding model | TBD | Open decision — see PRD §11 |
-| Local vector search | Brute-force cosine similarity (NumPy) | Default choice given small scale (~30–50 vectors/doc); revisit only if profiling shows a need |
-| UI | CLI for MVP; minimal GUI for demo | Open decision — see PRD §11 |
+| Language | Python 3.10 (`.venv` via `uv`; `requires-python = ">=3.10"`) | Confirmed (per Qualcomm AI Hub's documented environment) |
+| Hardware validation | Qualcomm AI Hub (`qai-hub` client) — compile + profile job `j5687vxyg` completed on Snapdragon X Elite | Confirmed; results in `data/ai_hub_profile_probe.json` |
+| LLM runtime | Ollama `qwen2.5:0.5b` over HTTP (default real backend); `llama-cpp-python` path retained as an alternative; `StubLLM` for tests | Confirmed in use |
+| Embeddings | fastembed `BAAI/bge-small-en-v1.5` (384-d, ONNX, no torch); `sentence-transformers` optional; deterministic hash backend for tests | Confirmed in use |
+| OCR | Tesseract 5.5.3 + PyMuPDF (primary), PaddleOCR 3.x fallback for missing language packs; `auto` engine selection | Confirmed in use |
+| Custom model compilation | AI Hub Workbench (compile → quantize → profile → validate) | Confirmed approach; applied to the probe model, full LLM/embedding compile still open (Roadmap) |
+| Local vector search | Brute-force cosine similarity (NumPy) | Confirmed — ~30–50 vectors/doc; revisit only if profiling shows a need |
+| UI | Click-based CLI (`qds`) for MVP | Confirmed for this submission; minimal GUI is a stretch item |
+| Data models | Pydantic v2 (`src/models.py`) | Confirmed |
 | Secrets management | Environment variable / `qai-hub configure`, via `.env` (git-ignored) | Confirmed |
+| Lint / type-check | Ruff (`E,F,I,N,W,UP`, line length 100); mypy configured in `pyproject.toml` | Ruff enforced; mypy has known outstanding findings |
 
 ---
 
@@ -260,18 +274,35 @@ Qualcomm AI Hub Models tooling requires AMD64 Python on Windows — native ARM64
 fail for some of this tooling. This only matters if/when working directly on Windows-on-ARM
 hardware; it doesn't block using the cloud device farm from a regular dev machine.
 
+### 8.5 Validation runs completed so far
+A compile + profile job has been run end-to-end through the workflow in §8.2 on a
+**Snapdragon X Elite (SOC SC8380XP)** cloud device via `qai-hub`:
+
+- Job ID: `j5687vxyg`; runtime QNN HTP with FP16 precision enabled.
+- Compute unit for every node in the profiled graph: **NPU** (no CPU/GPU fallback).
+- Results: `data/ai_hub_profile_probe.json`, full profiler log:
+  `data/ai_hub_profile_probe_runtime.log`.
+- Measured numbers and interpretation: [`PERFORMANCE.md`](PERFORMANCE.md).
+
+Still open (tracked in `ROADMAP.md`): compiling/quantizing the actual production LLM and
+embedding model — the completed job used a small ONNX probe model to validate the toolchain,
+device access and NPU execution path.
+
 ---
 
 ## 9. Security & privacy design
 
 - No document content, chunk text, or embeddings are transmitted over the network at runtime.
-  Network access (to Qualcomm AI Hub) is a **build-time/validation-time** concern only.
-- API tokens/secrets live in environment variables (`.env`, git-ignored), never in source code or
-  commit history.
+  Network access (to Qualcomm AI Hub, and one-time Ollama/Hugging Face model downloads) is a
+  **build-time / first-run setup** concern, not part of the document flow.
+- API tokens/secrets live in environment variables (`.env`, git-ignored) or the AI Hub client
+  config outside the repo (`~/.qai_hub/client.ini`), never in source code or commit history.
 - `data/samples/` (used for local testing) is git-ignored — real documents, even the developer's
   own, should never be committed.
-- Vector store lifecycle defaults to session-scoped (§3.8); any persistence is opt-in and
-  time-boxed.
+- Vector store lifecycle defaults to session-scoped and **in-memory only** (§3.8): sessions live
+  in the process that created them and are dropped on exit or via `qds clear`. No persistence is
+  implemented, so no opt-in/time-boxing controls are needed yet; if persistence is added it must
+  be opt-in, time-boxed, and paired with a visible "clear analyzed documents" user action.
 - Real confidentiality guarantee for any persisted data rests on OS-level full-disk encryption,
   not application-level "secure delete."
 
@@ -281,34 +312,55 @@ hardware; it doesn't block using the cloud device farm from a regular dev machin
 
 | Case | Handling |
 |---|---|
-| Blurry/skewed photo, low OCR confidence | Flag affected regions (FR-4) rather than silently explaining garbled text |
-| Multi-column layout or embedded tables | Layout extraction must detect and preserve these regions distinctly from body paragraphs |
-| Chunk still exceeds context window after structural split | Fall back to a secondary split at sentence boundaries within that chunk, preserving as much structural integrity as possible |
+| Blurry/skewed photo, low OCR confidence | Flag affected regions and pages (FR-4) rather than silently explaining garbled text — see `src/ocr/confidence.py` |
+| Missing Tesseract language pack | `auto` engine falls back to PaddleOCR; if no engine can handle the language, the failure is raised with the list of installed packs (`src/ocr/extract.py`) |
+| Multi-column layout or embedded tables | Text is assembled per Tesseract/Paddle **block** with bounding boxes and classified as heading/paragraph/table/list/footer; explicit column re-ordering is a known limitation |
+| Chunk still exceeds context window after structural split | Secondary split at sub-clause boundaries, then sentence boundaries, preserving as much structural integrity as possible (`_split_oversized_chunk`) |
 | Question doesn't match any indexed content | Return an explicit "not addressed in this document" response (§5, step 4) rather than answering from general knowledge |
+| OCR engine or LLM backend unavailable | Backend availability is checked (`is_available()`); tests and CI use stub/hash backends so the pipeline stays exercisable without models |
 | AI Hub job fails or times out | Development flow must not silently proceed with an unvalidated model — treat as a blocking issue for that component |
-| Model falls back to CPU instead of NPU | Surface this in profiling results and in the UI's compute-unit indicator (FR-22) rather than hiding it |
+| Model falls back to CPU instead of NPU | Surface this in profiling results and in the CLI's compute-unit indicator (FR-22) rather than hiding it |
 
 ---
 
-## 11. Performance targets
+## 11. Performance targets & measured results
 
-Exact numbers are TBD until the first profiling pass (models not yet chosen — PRD §11), but the
-design target is: a 10-page document should be processable end-to-end (OCR through overview) in a
-time that's demo-able live in front of judges, with per-chunk simplification and retrieval-based
-Q&A both feeling responsive (not multi-second waits per interaction). This section should be
-updated with real, measured numbers once profiling data exists — not left as an aspiration.
+Design target: a multi-page document processable end-to-end (OCR through overview) in a time
+that is demo-able live, with retrieval-based Q&A feeling responsive.
+
+Measured to date (see [`PERFORMANCE.md`](PERFORMANCE.md) for method and caveats):
+
+| Measurement | Result |
+|---|---|
+| AI Hub profiled model, steady-state inference on Snapdragon X Elite | ≈0.16–0.18 ms (median of 100 runs), all nodes on NPU |
+| AI Hub model load (cold / warm) | ≈2.58 s / ≈0.56 s |
+| Local end-to-end `analyze` — 1-page sample, 5 chunks, Ollama `qwen2.5:0.5b` on CPU | ≈75–80 s (6 sequential LLM calls; dominated by generation, not OCR) |
+| Local `ask` (RAG Q&A, warm) | ≈3–4 s |
+
+The per-chunk simplification loop in `src/pipeline/run.py` is sequential today; chunks are
+independent by design (§4, step 4), so parallelising that loop is the primary optimisation lever
+before submission. This section is updated with new numbers as profiling data lands — not left as
+an aspiration.
 
 ---
 
 ## 12. Testing strategy
 
-- **Unit tests** per module (`tests/`), starting with the pipeline stub already in
-  `src/pipeline/run.py`.
-- **Golden sample documents** — a small fixed set of representative sample documents (dummy/
-  anonymized) used as a regression baseline for OCR and chunking output, so changes don't silently
-  break structure detection.
+- **Unit tests per module** (`tests/`, 83 tests) covering chunking, glossary, simplification,
+  merge, embedding/index, QA, OCR confidence, lifecycle, models, compute-unit detection, CLI and
+  disclaimer — run with stub/hash backends so no model or server is required.
+- **Integration test** (`tests/test_integration.py`) exercises Document → chunk → glossary →
+  simplify → embed → merge → Q&A without OCR, keeping the orchestration honest.
+- **True end-to-end test** (`tests/test_e2e.py`) starts from a file on disk and runs every stage
+  through `Pipeline.analyze_document` / `Pipeline.ask_question`. Default run uses stub backends;
+  `QDS_E2E_REAL=1` switches to Ollama + fastembed.
+- **Golden sample fixture** (`tests/fixtures/golden_sample.txt`) — a fixed, anonymized document
+  whose facts (dates, amounts, defined terms) are asserted in tests, so changes can't silently
+  alter structure detection or numeric fidelity (FR-11).
 - **AI Hub profiling as a validation gate** — no model component is considered "done" until it has
   a completed AI Hub profiling job and passed the inference-accuracy check (§8.2, steps 3–4).
+
+Details, commands and conventions: [`TESTING.md`](TESTING.md).
 
 ---
 

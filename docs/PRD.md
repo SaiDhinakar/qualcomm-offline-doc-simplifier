@@ -4,9 +4,10 @@
 |---|---|
 | **Product** | Qualcomm Doc Simplifier |
 | **Prepared for** | Snapdragon® AI Lab Build & Present Challenge (Qualcomm) |
-| **Status** | Draft — pre-development |
-| **Version** | 0.1 |
+| **Status** | Implemented — requirements met in the current build |
+| **Version** | 0.2 |
 | **Owner** | Solo participant (individual entry) |
+| **Maintainer** | [SaiDhinakar](https://github.com/SaiDhinakar) |
 
 ---
 
@@ -147,9 +148,10 @@ Each requirement maps to a pipeline stage described in detail in `ARCHITECTURE.m
   runtime flow.
 
 ### 6.8 Language support
-- FR-20: At minimum, support one Indian vernacular language end-to-end for the demo (target
-  language TBD — see Open Decisions). Additional languages are a stretch goal, not a baseline
-  requirement.
+- FR-20: At minimum, support one Indian vernacular language end-to-end for the demo — **resolved:
+  Hindi (`hi`) is the default output language**, with `--lang` accepting `kn`, `ta`, `te`, `bn`,
+  `mr`, `gu`, `ml`, `pa`, `ur`, `en` as well. Additional languages beyond this set are a stretch
+  goal, not a baseline requirement.
 
 ### 6.9 UI / demo surface
 - FR-21: A minimal interface (CLI acceptable for MVP; a simple UI preferred for the live demo)
@@ -159,6 +161,14 @@ Each requirement maps to a pipeline stage described in detail in `ARCHITECTURE.m
   which compute unit — NPU/GPU/CPU — a step is running on), since "genuinely on-device" is a core
   claim that should be demonstrable, not just asserted.
 
+### 6.10 Implementation status
+
+All of FR-1 through FR-22 are implemented in the current build. Where a requirement defers
+something to a later stage, that is called out rather than silently dropped: FR-18's opt-in
+persistence controls exist only as the visible `qds clear` action, because no persistence is
+implemented yet (§11). Coverage is asserted by the test suite ([`TESTING.md`](TESTING.md)) and
+exercised end-to-end by `tests/test_e2e.py`.
+
 ---
 
 ## 7. Non-functional requirements
@@ -167,7 +177,7 @@ Each requirement maps to a pipeline stage described in detail in `ARCHITECTURE.m
 |---|---|
 | **Privacy** | No document content leaves the device during normal runtime use. |
 | **Offline operation** | Core flow (capture → explain → ask questions) must work with no internet connection. (Model compilation/validation via Qualcomm AI Hub happens ahead of time, during development — not at runtime.) |
-| **Performance** | Target: process a 10-page document end-to-end (OCR through overview) in a time that's demo-able live — exact budget TBD after first profiling pass; see ARCHITECTURE.md §13. |
+| **Performance** | Target: process a 10-page document end-to-end (OCR through overview) in a time that's demo-able live — first measurements recorded in [`PERFORMANCE.md`](PERFORMANCE.md); optimization of the per-chunk LLM loop still open. |
 | **Accuracy** | Numeric/date/amount details must not be altered or hallucinated in explanations. |
 | **Hardware validation** | Every on-device model component must be compiled, quantized, and profiled via Qualcomm AI Hub on a real Snapdragon device before being considered "done" — not just tested on a dev laptop's CPU. |
 | **Resilience** | Pipeline should degrade gracefully on messy input (skewed photo, partial OCR failure) rather than crashing outright. |
@@ -176,25 +186,26 @@ Each requirement maps to a pipeline stage described in detail in `ARCHITECTURE.m
 
 ## 8. Constraints & assumptions
 
-This section exists specifically because of where this project stands **today**:
+This section records the constraints the design was written under, and where each stands now:
 
-- **Available resources right now: a Qualcomm AI Hub API token, and nothing else.** No physical
-  Snapdragon/HP hardware, no pre-existing codebase, no pre-selected models.
+- **Available resources at project start: a Qualcomm AI Hub API token, and nothing else.** No
+  physical Snapdragon/HP hardware, no pre-existing codebase, no pre-selected models. **Still
+  true today:** no physical Snapdragon hardware is in hand, so hardware validation continues to
+  run through AI Hub cloud device jobs.
 - **Implication for architecture:** all development happens on whatever machine is available
   (any CPU/OS); all Snapdragon-specific compilation, quantization, and profiling happens via
   Qualcomm AI Hub's cloud-hosted device jobs, not on physical hardware in hand. This is a
-  supported, intended use of AI Hub (see ARCHITECTURE.md §9) — not a workaround.
+  supported, intended use of AI Hub (see ARCHITECTURE.md §8) — not a workaround.
 - The AI Hub API token must never be committed to the repository. It is provided via environment
   variable / local `qai-hub` CLI configuration (see `.env.example` and `SETUP.md`), and `.env` is
   git-ignored.
 - Team size is 1 (individual participation, per challenge eligibility rules) — scope must be
   realistic for a solo build within the submission window.
-- Model choices (OCR, LLM, embedding model) are **not yet finalized** — see §11, Open Decisions.
-  Requirements above are written to be model-agnostic so they hold regardless of which specific
-  models are ultimately chosen.
-- Qualcomm AI Hub job quotas/limits for the tier available under this token are not yet confirmed
-  and should be checked early (see Risks, §10) so validation work isn't blocked late in the
-  timeline.
+- Model choices (OCR, LLM, embedding model) **have been finalized** — see §11, Resolved
+  decisions. Requirements above were written to be model-agnostic, which is why they held across
+  the swap.
+- Qualcomm AI Hub job quotas/limits for the tier available under this token were checked early;
+  a compile + profile job has completed (ARCHITECTURE §8.5), so validation work is not blocked.
 
 ---
 
@@ -202,10 +213,10 @@ This section exists specifically because of where this project stands **today**:
 
 | Evaluation criterion | How this product addresses it |
 |---|---|
-| **Technical Implementation** | Multi-stage on-device pipeline (OCR → structure-aware chunking → glossary → per-chunk LLM simplification → local embedding/retrieval → hierarchical merge → RAG Q&A), every component compiled/quantized/profiled and numerically validated via Qualcomm AI Hub against real Snapdragon hardware. |
+| **Technical Implementation** | Multi-stage on-device pipeline (OCR → structure-aware chunking → glossary → per-chunk LLM simplification → local embedding/retrieval → hierarchical merge → RAG Q&A), fully implemented and covered by an 83-test suite; on-device hardware validation via Qualcomm AI Hub cloud device jobs, with a completed compile + profile run on a Snapdragon X Elite showing NPU execution (ARCHITECTURE §8.5). |
 | **Application Use Case & Innovation** | Addresses a real, widely-felt problem (document literacy) with a genuinely differentiated approach (fully offline, privacy-preserving, vernacular-language) rather than another generic AI chatbot. |
 | **Deployment & Accessibility** | Runs fully offline on consumer Snapdragon-powered HP hardware; explanations in vernacular languages directly serve accessibility for non-native-English speakers; no cloud dependency or subscription needed to use it. |
-| **Presentation & Documentation** | This PRD, `ARCHITECTURE.md`, `SETUP.md`, and `ROADMAP.md` provide a complete account of the problem, design, and build plan; the live demo is designed (FR-21, FR-22) specifically to make the on-device claim visibly provable, not just stated. |
+| **Presentation & Documentation** | The documentation set (`README.md` plus `docs/` — PRD, Architecture, Setup, CLI, Testing, Performance, Roadmap, Contributing) gives a complete account of the problem, design, build and measurements; the live demo is designed (FR-21, FR-22) specifically to make the on-device claim visibly provable, not just stated. |
 
 ---
 
@@ -214,39 +225,38 @@ This section exists specifically because of where this project stands **today**:
 | Risk | Impact | Mitigation |
 |---|---|---|
 | No physical Snapdragon hardware in hand | Can't do a live on-laptop demo without borrowed/available hardware | Rely on Qualcomm AI Hub's cloud-hosted device profiling as validated proof; show profiling dashboard/metrics in the presentation as evidence; seek hardware access if available before the deadline |
-| OCR accuracy on vernacular scripts / poor photo quality | Wrong explanations from bad input text | Add OCR-confidence flagging (FR-4); test early on real sample documents, not synthetic ones |
+| OCR accuracy on vernacular scripts / poor photo quality | Wrong explanations from bad input text | OCR-confidence flagging (FR-4) implemented in `src/ocr/confidence.py` and surfaced by the CLI; Tesseract language packs + PaddleOCR fallback cover missing scripts; test on real sample documents, not synthetic ones |
 | LLM quantization degrading numeric accuracy | Wrong amounts/dates in explanations — a correctness-critical failure | Explicit inference-job accuracy validation step in AI Hub workflow (compare quantized vs. reference output) before accepting a model |
 | AI Hub job quota/turnaround limits | Validation work blocked or slow near the deadline | Confirm quota early (Roadmap Sep 14–16 phase); don't leave hardware validation to the last days |
 | Scope too large for solo/limited timeframe | Incomplete submission | Roadmap phases prioritize a working end-to-end flow before polish; language support and UI polish are explicitly listed as stretch, not baseline (§6.8, §6.9) |
-| Legal/financial explanations perceived as advice | Misuse risk / trust issue with judges | Explicit in-product disclaimer that this explains documents, it does not provide legal or financial advice |
+| Legal/financial explanations perceived as advice | Misuse risk / trust issue with judges | In-product disclaimer printed with every explanation and answer (`src/disclaimer.py`) |
 
 ---
 
-## 11. Open decisions (blocking full requirements sign-off)
+## 11. Resolved decisions
 
-| Decision | Status |
+These were open at draft time (v0.1). All are now decided and reflected in the code and in
+`ARCHITECTURE.md` §7:
+
+| Decision | Resolution |
 |---|---|
-| OCR approach/model | Not yet chosen |
-| Local LLM (simplification + merge + Q&A) | Not yet chosen |
-| Embedding model | Not yet chosen |
-| Target language(s) for the demo | Not yet chosen |
-| UI approach (CLI-only vs. minimal GUI) | Not yet chosen |
-| Persistence beyond session-scope (stretch feature or not) | Not yet decided |
-
-These are tracked here and in `ARCHITECTURE.md` so the PRD doesn't silently assume choices that
-haven't actually been made.
+| OCR approach/model | Tesseract 5.5.3 + PyMuPDF primary; PaddleOCR 3.x fallback for missing language packs; engine selectable via `QDS_OCR` (`tesseract` \| `paddle` \| `auto`) |
+| Local LLM (simplification + merge + Q&A) | Ollama `qwen2.5:0.5b` via HTTP (`QDS_LLM=ollama`); `llama-cpp-python` retained as an alternative; deterministic `StubLLM` for tests/CI |
+| Embedding model | fastembed `BAAI/bge-small-en-v1.5` (384-d, ONNX, no torch) via `QDS_EMBED=fastembed`; deterministic hash backend for tests/CI |
+| Target language(s) for the demo | Hindi default (`--lang hi`); `kn`, `ta`, `te`, `bn`, `mr`, `gu`, `ml`, `pa`, `ur`, `en` accepted |
+| UI approach (CLI-only vs. minimal GUI) | Click-based CLI (`qds`) for this submission; minimal GUI remains a stretch item |
+| Persistence beyond session-scope | Not implemented — sessions are in-memory and process-scoped, with `qds clear` as the visible clear action (FR-17, FR-18). Persistence would be a later, opt-in feature |
 
 ---
 
 ## 12. Success metrics
 
-- **Functional completeness:** all FRs in §6.1–§6.6 working end-to-end on at least one real
-  sample document, in at least one target language.
-- **Validated on-device:** every model component shows a completed Qualcomm AI Hub profiling +
-  inference-accuracy job, with results documented.
-- **Numeric fidelity:** 0 altered/hallucinated numeric values (amounts, dates, percentages) across
-  test documents used for the demo.
-- **Demo reliability:** the live demo flow (capture → explain → ask a question) completes without
-  manual intervention on at least 3 consecutive dry runs before submission.
-- **Documentation completeness:** PRD, Architecture, Setup, and Roadmap all reflect the actual
-  final build (updated as decisions in §11 are made — not left as-is from this draft).
+Status of each metric against the current build:
+
+| Metric | Target | Status |
+|---|---|---|
+| **Functional completeness** | All FRs in §6.1–§6.6 working end-to-end on at least one real sample document, in at least one target language | **Met** — full flow runs from file → overview → grounded answer (`tests/test_e2e.py`) |
+| **Validated on-device** | Every model component shows a completed Qualcomm AI Hub profiling + inference-accuracy job, with results documented | **Partial** — compile + profile job `j5687vxyg` completed on Snapdragon X Elite with NPU execution (`data/ai_hub_profile_probe.json`); production LLM/embedding compile still open (Roadmap) |
+| **Numeric fidelity** | 0 altered/hallucinated numeric values (amounts, dates, percentages) across demo documents | **Guarded** — golden-sample tests assert key figures; prompt rules require verbatim numbers (FR-11); ongoing manual verification on demo documents |
+| **Demo reliability** | Live flow (capture → explain → ask) completes without manual intervention on 3 consecutive dry runs | **Pending** — scheduled for the polish phase (Roadmap, Sep 28–29) |
+| **Documentation completeness** | PRD, Architecture, Setup and Roadmap reflect the actual final build | **Met** — full documentation set under `docs/` (index: [`README.md`](README.md)) kept in sync with the code |
